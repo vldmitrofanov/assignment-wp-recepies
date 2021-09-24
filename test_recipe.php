@@ -13,10 +13,20 @@ Author: Shirker
 Author URI: N/A
 License: GPLv2 or later
 */
+function test_recipe__plugin_activate()
+{
+    global $wpdb;
+    $sql = array();
+    $sql[0] = "ALTER TABLE $wpdb->comments ADD rating INT(1) DEFAULT NULL;";
+    foreach ($sql as $query) {
+        @$wpdb->query($query);
+    }
+}
+register_activation_hook(__FILE__, 'test_recipe__plugin_activate');
+
 
 function create_test_recipe_cpt()
 {
-    global $wpdb;
     $labels = array(
         'name' => _x('Test Recipe', 'Post Type General Name', 'textdomain'),
         'singular_name' => _x('Test Recipe', 'Post Type Singular Name', 'textdomain'),
@@ -69,12 +79,6 @@ function create_test_recipe_cpt()
         'register_meta_box_cb' => 'cooking_time_meta_box'
     );
     register_post_type('testrecipe', $args);
-
-    $sql = array();
-    $sql[0] = "ALTER TABLE $wpdb->comments ADD rating INT(1) DEFAULT NULL;";
-    foreach ($sql as $query) {
-        @$wpdb->query($query);
-    }
 }
 
 add_action('init', 'create_test_recipe_cpt', 0);
@@ -199,9 +203,9 @@ function get_test_recipies_query($limit_string = 10, $order_by = null, $extra_qu
         "INNER JOIN $wpdb->users AS u ON p.post_author = u.ID " .
         "LEFT JOIN $wpdb->postmeta AS pm1 ON ( pm1.post_id = p.ID) " .
         "LEFT JOIN $wpdb->posts wp ON p.id = wp.post_parent " .
-        "LEFT JOIN $wpdb->term_relationships wtr ON p.ID = wtr.object_ID ".
-        "LEFT JOIN $wpdb->term_taxonomy wtt ON wtr.term_taxonomy_id = wtt.term_taxonomy_id ".
-        "LEFT JOIN $wpdb->terms wt ON wt.term_id = wtt.term_id ".
+        "LEFT JOIN $wpdb->term_relationships wtr ON p.ID = wtr.object_ID " .
+        "LEFT JOIN $wpdb->term_taxonomy wtt ON wtr.term_taxonomy_id = wtt.term_taxonomy_id " .
+        "LEFT JOIN $wpdb->terms wt ON wt.term_id = wtt.term_id " .
         "LEFT JOIN $wpdb->comments AS wpc ON ( wpc.comment_post_ID = p.ID) " .
         "WHERE p.post_type = 'testrecipe' AND p.post_status='publish' " .
         $extra_query . " " .
@@ -245,7 +249,8 @@ function get_all_test_recipies($request)
     return  array('data' => $posts_data, 'page' => $page, 'pages' => $number_of_pages, 'results_per_page' => $results_per_page);
 }
 
-function get_featured_test_recipies($request) {
+function get_featured_test_recipies($request)
+{
     global $wpdb;
     $order_by = "p.comment_count DESC";
     $extra_query = "AND wpc.rating >= 4 ";
